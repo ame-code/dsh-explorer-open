@@ -5,3 +5,4 @@ node_modules/
 *.log
 win11/package/*.dll
 win11/package/*.exe
+*.tgz
