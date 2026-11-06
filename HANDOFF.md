@@ -98,7 +98,7 @@
 | `package.json` | 清单 + `dsh.bundle` + `dsh.client` | 已写，安装时校验通过 |
 | `cordis.patch.yml` | `- insert: [{ id: dsh-explorer-open, name: 'dsh-explorer-open', config: {} }]` | 已写 |
 | `index.js` | `export { apply } from './lib/index.js'`、`export const inject = []` | 已写 |
-| `lib/index.js` | 宿主侧：注入菜单、复制启动器、轮询待办文件、注册 `/api/plugins/dsh-open-with/request` | 离线自测全绿，**未在真实进程验证** |
+| `lib/index.js` | 宿主侧：注入菜单、复制启动器、轮询待办文件、注册 `/api/plugins/dsh-explorer-open/request` | 离线自测全绿，**未在真实进程验证** |
 | `lib/registry.js` | 用 `reg.exe` 写/删 `HKCU\Software\Classes\{Directory\Background, Directory, *}\shell\OpenWithDsh` | 实测写入/删除通过 |
 | `lib/launch.ps1` | 启动器：文件→父目录、写 `~/.dsh/dsh-open-with/pending.json`（无 BOM）、启动 `DeepSeek Harness.exe` | 实测通过（中文路径 + 文件参数） |
 | ~~`lib/launch.js`~~ | 旧的 node 版启动器 | **已删除** |
@@ -120,13 +120,13 @@
 
 自测资产（`test/`，随仓库分发）：
 
-- `host-test.mjs` —— 假 ctx 跑宿主 `apply`：启动器/图标复制、`config.json`、路由注册、403/200、待办消费、去重/过期/非目录/缺失文件丢弃、`file` 透传、dispose 清理。**必须隔离**，否则会抢走正在运行的宿主的 `pending.json`、还会把真实右键菜单键删掉（踩过）。内置两道守卫（`DSH_OPEN_WITH_REG_BASE` + `DSH_OPEN_WITH_TEST_HOME=1`），正确跑法：
+- `host-test.mjs` —— 假 ctx 跑宿主 `apply`：启动器/图标复制、`config.json`、路由注册、403/200、待办消费、去重/过期/非目录/缺失文件丢弃、`file` 透传、dispose 清理。**必须隔离**，否则会抢走正在运行的宿主的 `pending.json`、还会把真实右键菜单键删掉（踩过）。内置两道守卫（`DSH_EXPLORER_OPEN_REG_BASE` + `DSH_EXPLORER_OPEN_TEST_HOME=1`），正确跑法：
   ```bash
-  USERPROFILE='E:\tmp\dsh-open-with-home' DSH_OPEN_WITH_TEST_HOME=1 \
-  DSH_OPEN_WITH_REG_BASE='HKCU\Software\Classes\__dsh_open_with_test' \
-  DSH_OPEN_WITH_NO_MSIX=1 node test/host-test.mjs
+  USERPROFILE='E:\tmp\dsh-explorer-open-home' DSH_EXPLORER_OPEN_TEST_HOME=1 \
+  DSH_EXPLORER_OPEN_REG_BASE='HKCU\Software\Classes\__dsh_explorer_open_test' \
+  DSH_EXPLORER_OPEN_NO_MSIX=1 node test/host-test.mjs
   ```
-  （`lib/registry.js` 里的 `REG_BASE` 支持用 `DSH_OPEN_WITH_REG_BASE` 覆盖，默认仍是 `HKCU\Software\Classes`；跑完记得 `reg delete "HKCU\Software\Classes\__dsh_open_with_test" /f`。）
+  （`lib/registry.js` 里的 `REG_BASE` 支持用 `DSH_EXPLORER_OPEN_REG_BASE` 覆盖，默认仍是 `HKCU\Software\Classes`；跑完记得 `reg delete "HKCU\Software\Classes\__dsh_explorer_open_test" /f`。）
 - `client-test.mjs` —— 假 `__ModuleLoader__` / fetch / 三个服务跑 `client.js`，断言调用序列、兜底路径、`@引用` 拼装与 `clearPreviousDraft`。
 
 ## 5. 已解决 / 仍需确认
@@ -138,7 +138,7 @@
    `powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "<launch.ps1>" "%V"`；`launch.ps1` 本身在安装时被复制到 `%USERPROFILE%\.dsh\dsh-open-with\launch.ps1`，菜单不依赖开发目录。
 3. PowerShell 写 UTF-8 坑：用 `[System.IO.File]::WriteAllText($temp, $json, [System.Text.UTF8Encoding]::new($false))`，实测首字节 `0x7b`，中文路径正确。
    反向坑：**无 BOM 的 .ps1 会被 5.1 按 GBK 解码**，所以 `launch.ps1` 源码全 ASCII，绝不要往里加中文。
-4. `client.js` 直接 `fetch('/api/plugins/dsh-open-with/request')` 可用（与 `dsh-client-auto-continue` 同款做法）。
+4. `client.js` 直接 `fetch('/api/plugins/dsh-explorer-open/request')` 可用（与 `dsh-client-auto-continue` 同款做法）。
 5. Client 侧只用 `workspaces` / `sessions` / `uiWorkspace`，未用 `workspaceRegistry`。
 6. 三个菜单键都写：`Directory\Background`（空白处）、`Directory`（文件夹）、`*`（任意文件，`%V` 是文件路径，启动器取父目录）。目录是 HKCU，Win11 的新式菜单与旧式「显示更多选项」都会读到。
 7. 重复触发防护：待办文件带 `token` + 时间戳，读后立即删除，只认 2 分钟内的请求，同文件夹 1.5s 内去重。
@@ -164,7 +164,7 @@
 7. 全程盯日志里的 `右键菜单已写入=...` 与 `launch.ps1` 路径，确认指向 `%USERPROFILE%\.dsh\dsh-open-with\launch.ps1` 而不是开发目录。
 
 如果第 3 步不出现菜单：先 `reg query` 三个键在不在（在 → 是菜单缓存/刷新问题，跑 `refreshExplorer`；不在 → 宿主 `apply` 没跑，看是否有加载报错）。
-如果第 4 步不跳转：先在浏览器/DevTools 看 `/api/plugins/dsh-open-with/request` 有没有被轮询（client bundle 是否注入），再看 `workspaces.create` 抛什么错。
+如果第 4 步不跳转：先在浏览器/DevTools 看 `/api/plugins/dsh-explorer-open/request` 有没有被轮询（client bundle 是否注入），再看 `workspaces.create` 抛什么错。
 
 ## 7. 工作环境注意事项
 
@@ -236,7 +236,7 @@ powershell -File install-msix.ps1  # 或让插件自己装
   `ctx.get('conversation').input.requestDraftInitialization(binding, { prompt, clearPreviousDraft: true })`，
   需要 `ctx.sessions.binding(sessionId)` 先就绪，所以有 20×100ms 重试；拿不到就退回 `uiWorkspace.startSession(workspaceId, { prompt, clearPreviousDraft: true })`。
 - 为什么这么做：草稿里的 `@路径` 本身就是引用语法（`dsh-client-ui-reference/lib/client.js` 的 `fileReferenceRule`，正则 `/(?<!\S)(@"[^"\n]+"|@[^\s]+)/gu`），提交时按会话 cwd 解析成文件引用，不需要额外的 UI API。
-- 启动器的 exe 路径不再写死：先读 `~/.dsh/dsh-open-with/config.json` 的 `exe`（插件启用时写 `process.execPath`），其次 `DSH_OPEN_WITH_EXE`，最后才是几个常见安装路径。
+- 启动器的 exe 路径不再写死：先读 `~/.dsh/dsh-open-with/config.json` 的 `exe`（插件启用时写 `process.execPath`），其次 `DSH_EXPLORER_OPEN_EXE`，最后才是几个常见安装路径。
 - 菜单图标也不再借用 `D:\DeepSeek Harness\resources\tray.ico`：改用自带 `assets/dsh.ico`，启用时复制到 `~/.dsh/dsh-open-with/dsh.ico`。
 
 ### 8.2 仓库结构（仓库根 = 插件包）
@@ -251,7 +251,12 @@ powershell -File install-msix.ps1  # 或让插件自己装
 - `plugin_manager install_bundle` 的 target 接受 npm 包名/版本 spec（profile 里已有 `dsh-better-sidebar@0.30.1` 这种形态），所以**发布到 npm 之后，用户粘包名就能装**。
 - `dsh-plugin-market` 的目录是服务端下发的目录文档，不是「发 npm 就自动出现」，需要提交收录。
 
-### 8.4 还没做的
+### 8.4 内部命名统一（2026-11-07）
+
+包名改成 `dsh-explorer-open` 之后，JS/PS 层的内部标识也统一了（原生组件仍是 `DshOpenWith.Local`，证书/包身份不动）：
+状态目录 `~/.dsh/dsh-explorer-open/`、接口 `/api/plugins/dsh-explorer-open/request`、请求头 `x-dsh-explorer-open`、日志前缀 `[dsh-explorer-open]`、环境变量 `DSH_EXPLORER_OPEN_{NO_MSIX,EXE,REG_BASE,TEST_HOME}`。旧的 `~/.dsh/dsh-open-with/` 目录可以直接删掉（里面的 launch.ps1/config.json/dsh.ico 下次启用会重建）。
+
+### 8.5 还没做的
 
 1. 本机 `npm whoami` 未登录 → 发版需要用户执行 `npm login`（或提供 token）。
 2. 没 `git init`，也没有 GitHub 仓库地址（README 里暂未放链接）。

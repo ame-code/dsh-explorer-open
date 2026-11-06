@@ -27,7 +27,7 @@ if ($path) {
 
 if (-not $folder) { exit 0 }
 
-$root = Join-Path $env:USERPROFILE '.dsh\dsh-open-with'
+$root = Join-Path $env:USERPROFILE '.dsh\dsh-explorer-open'
 if (-not [System.IO.Directory]::Exists($root)) { [void][System.IO.Directory]::CreateDirectory($root) }
 
 $token = [guid]::NewGuid().ToString('N')
@@ -52,7 +52,7 @@ $config = Join-Path $root 'config.json'
 if ([System.IO.File]::Exists($config)) {
     try { $exe = (Get-Content -LiteralPath $config -Raw | ConvertFrom-Json).exe } catch { $exe = $null }
 }
-if (-not $exe -and $env:DSH_OPEN_WITH_EXE) { $exe = $env:DSH_OPEN_WITH_EXE }
+if (-not $exe -and $env:DSH_EXPLORER_OPEN_EXE) { $exe = $env:DSH_EXPLORER_OPEN_EXE }
 
 if (-not ($exe -and [System.IO.File]::Exists($exe))) {
     $candidates = @(

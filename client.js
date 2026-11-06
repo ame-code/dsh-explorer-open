@@ -1,18 +1,18 @@
 window.__ModuleLoader__.load({
   id: 'dsh-explorer-open',
   factory(require) {
-    const REQUEST_URL = '/api/plugins/dsh-open-with/request'
+    const REQUEST_URL = '/api/plugins/dsh-explorer-open/request'
     // 自定义请求头：跨站页面无法在不触发预检的情况下带上它，
     // 可以挡住别的网页偷偷 GET 掉排队中的请求。
-    const REQUEST_HEADER = 'x-dsh-open-with'
+    const REQUEST_HEADER = 'x-dsh-explorer-open'
     const POLL_MS = 1000
 
     return {
       inject: ['uiWorkspace', 'sessions', 'workspaces'],
       apply(ctx) {
         const log = (message, error) => {
-          if (error === undefined) console.info(`[dsh-open-with] ${message}`)
-          else console.warn(`[dsh-open-with] ${message}`, error)
+          if (error === undefined) console.info(`[dsh-explorer-open] ${message}`)
+          else console.warn(`[dsh-explorer-open] ${message}`, error)
         }
 
         /** 打开工作区（已存在则复用），在其中新建一个会话，再切过去。 */

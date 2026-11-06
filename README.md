@@ -33,7 +33,7 @@ Deployment failed with HRESULT: 0x800B0109
 
 这时以管理员身份运行一次插件目录下的 `native/trust-cert.bat`（把自签证书 `dsh-open-with.cer` 导入 `LocalMachine\TrustedPeople`），然后重启 dsh 即可。只需要做一次。
 
-> 只想要旧式菜单、不想动证书：设环境变量 `DSH_OPEN_WITH_NO_MSIX=1` 再启动 dsh，插件就不会去装 MSIX 包。
+> 只想要旧式菜单、不想动证书：设环境变量 `DSH_EXPLORER_OPEN_NO_MSIX=1` 再启动 dsh，插件就不会去装 MSIX 包。
 
 ### 从源码/本地目录安装
 
@@ -53,9 +53,9 @@ plugin_manager install_bundle E:\work\tools\dsh-open-with
    └─ 新式菜单：MSIX 包身份 + 原生 IExplorerCommand
          └─ 同一个 launch.ps1
                 ↓
-   %USERPROFILE%\.dsh\dsh-open-with\pending.json   {folder, file?, token, at}
+   %USERPROFILE%\.dsh\dsh-explorer-open\pending.json   {folder, file?, token, at}
                 ↓  宿主侧插件每 300ms 扫描
-   GET /api/plugins/dsh-open-with/request          （带 x-dsh-open-with 头）
+   GET /api/plugins/dsh-explorer-open/request          （带 x-dsh-explorer-open 头）
                 ↓  页面侧插件每 1s 轮询
    workspaces.create → sessions.create → uiWorkspace.openSession
                 ↓  文件右键时
@@ -64,7 +64,7 @@ plugin_manager install_bundle E:\work\tools\dsh-open-with
 
 - 启动器用 PowerShell 5.1 写 UTF-8（**无 BOM**）、先写临时文件再改名，页面不会读到半个 JSON。
 - `/api/...` 路由要求自定义请求头，跨站页面带不上它（会先触发预检），因此别的网页没法领走排队中的请求。
-- dsh 可执行文件位置由插件写进 `config.json`，启动器按 config → `DSH_OPEN_WITH_EXE` → 常见安装路径的顺序查找。
+- dsh 可执行文件位置由插件写进 `config.json`，启动器按 config → `DSH_EXPLORER_OPEN_EXE` → 常见安装路径的顺序查找。
 
 ## win11/ 原生组件
 
@@ -106,10 +106,10 @@ bash build.sh
 
 ```bash
 # 宿主侧：注册表、待办扫描、HTTP 路由、启用/停用清理
-# USERPROFILE 指向一个空目录（要用 Windows 路径写法），DSH_OPEN_WITH_TEST_HOME=1 是防误跑的开关
-USERPROFILE='E:\tmp\dsh-open-with-home' DSH_OPEN_WITH_TEST_HOME=1 \
-DSH_OPEN_WITH_REG_BASE='HKCU\Software\Classes\__dsh_open_with_test' \
-DSH_OPEN_WITH_NO_MSIX=1 node test/host-test.mjs
+# USERPROFILE 指向一个空目录（要用 Windows 路径写法），DSH_EXPLORER_OPEN_TEST_HOME=1 是防误跑的开关
+USERPROFILE='E:\tmp\dsh-explorer-open-home' DSH_EXPLORER_OPEN_TEST_HOME=1 \
+DSH_EXPLORER_OPEN_REG_BASE='HKCU\Software\Classes\__dsh_explorer_open_test' \
+DSH_EXPLORER_OPEN_NO_MSIX=1 node test/host-test.mjs
 
 # 页面侧：调用顺序、参数、@引用拼装、失败回退
 node test/client-test.mjs

@@ -87,7 +87,7 @@ console.log(a.calls.map((c) => JSON.stringify(c)).join('\n'))
 ok(a.calls.some((c) => c[0] === 'workspaces.create' && c[1].path === 'E:\\demo'), '调用 workspaces.create({path})')
 ok(a.calls.some((c) => c[0] === 'sessions.create' && c[1].workspaceId === 'ws-1'), '调用 sessions.create({workspaceId, cwd})')
 ok(a.calls.some((c) => c[0] === 'uiWorkspace.openSession' && c[1] === 'sess-1'), '调用 uiWorkspace.openSession(新会话)')
-ok(a.calls.some((c) => c[0] === 'fetch' && c[2] && c[2]['x-dsh-open-with'] === '1'), '轮询带上自定义请求头')
+ok(a.calls.some((c) => c[0] === 'fetch' && c[2] && c[2]['x-dsh-explorer-open'] === '1'), '轮询带上自定义请求头')
 
 console.log('--- 空闲时不该有动作 ---')
 const b = await run('idle', { payload: { status: 'idle', requests: [] } })
