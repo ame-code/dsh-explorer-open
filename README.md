@@ -126,6 +126,17 @@ node test/client-test.mjs
 - `HANDOFF.md`：开发笔记（决策记录、踩坑、待办），中文。
 - `win11/build/` 与 `.probe/` 是构建产物和本地临时目录，不纳入版本库。
 
+## 排查
+
+点菜单后如果只把 dsh 窗口调到前面、没有打开工作区，先看两个地方：
+
+1. `~/.dsh/dsh-explorer-open/trace.log` —— 宿主记录页面何时取走请求（`poll served=...`）、页面回报的处理结果（`ack stage=start|ok|fail`）。
+   - 只有 `poll served` 没有 `ack`：页面里的客户端没跑起来，刷新页面（Ctrl+R）或重启 dsh。
+   - `ack stage=fail`：带的是失败原因，多半是工作区/会话服务报错。
+   - 连 `poll served` 都没有：请求没到宿主，检查 `~/.dsh/dsh-explorer-open/pending.json` 是否被写出来
+     （经典菜单走注册表里的 `launch.ps1`；Win11 新式菜单走 MSIX 里的 `DshOpenWith.dll`，两者都指向这个目录）。
+2. `LOCALAPPDATA%\dsh-explorer-open-command.log` —— 只有设了 `DSH_EXPLORER_OPEN_DEBUG=1` 时，原生组件才写这个日志。
+
 ## 已知限制
 
 - 只在 Windows 上工作（注册表 + MSIX + 资源管理器）。

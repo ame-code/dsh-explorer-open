@@ -274,3 +274,23 @@ powershell -File install-msix.ps1  # 或让插件自己装
 1. 用户重启 dsh 后要验证：文件右键草稿里出现 `@文件`；空白处/文件夹/文件三种右键都仍在；新式菜单图标正常；`~/.dsh/dsh-explorer-open/` 目录被重建。
 2. 真要进 `dsh-plugin-market` 需要向那边提交收录（不是发 npm 就自动出现）。
 3. 升级路径（用户已装旧版本 → 新版本）还没真实演练过。
+
+## 9. 0.1.0 发布后的两个回归（2026-11-07 已修）
+
+现象：无论在哪个文件夹右键，都只是把 dsh 调到前面，不打开工作区、不新建会话。
+
+根因一：`win11/src/dsh_open_with.cpp` 里 `LauncherPath()` 仍写着 `%USERPROFILE%\.dsh\dsh-open-with\launch.ps1`（改名前的目录）。
+新式菜单因此把 `pending.json` 写进旧目录，而宿主读的是 `~/.dsh/dsh-explorer-open/`，请求永远没人取。
+根因二：DLL 传给启动器的是 `ParentFolderOf(路径)`，文件信息被丢掉，所以即使目录对了，文件右键也不会有 `@引用`。
+
+修法：
+- `LauncherPath()` 改指 `\.dsh\dsh-explorer-open\launch.ps1`，不再有旧目录兜底；日志文件名也改成 `dsh-explorer-open-command.log`。
+- `FolderFromShellItemArray` → `SelectedPath`：返回**原始选中项路径**（文件仍是文件），由 `lib/launch.ps1` 拆成 `folder` + `file`；`GetState`/`Invoke` 同步改名，日志 `Invoke selection=...`。
+- 版本升到 `1.0.0.8` 重新打包签名安装（`native/version.txt` 自动更新）。
+- 新增诊断链路：宿主 `/api/plugins/dsh-explorer-open/ack?stage=start|ok|fail&detail=...` 写 `~/.dsh/dsh-explorer-open/trace.log`，页面每次领取请求/成功/失败都回报；`README.md` 增加「排查」一节。
+- 顺手修 `win11/build.sh` 被 git 转成 CRLF 导致 `g++: fatal error: no input files`：加 `.gitattributes`（`* text=auto eol=lf`、`*.sh`/`*.ps1` 强制 LF、二进制标记），并就地转回 LF。
+
+验证：`trace.log` 出现 `poll served=E:\work\tools\dsh-workplace-move\prompt.md` → `ack stage=start` → `ack stage=ok`（270ms 内），用户确认「成功了」。
+
+**发版注意**：npm 上的 `0.1.0` 内置的 MSIX 仍是旧的 `1.0.0.7`（同样有这两个 bug），必须发 `0.1.1` 覆盖；本地 `package.json` 已是 `0.1.1`。
+另：`plugin_manager remove_bundle` + `install_bundle` 会让宿主**热重建插件**（实测服务停止后旧路由返回 401、重装后新路由立即生效），改宿主代码不必重启 dsh；但客户端 bundle 仍需刷新页面。
