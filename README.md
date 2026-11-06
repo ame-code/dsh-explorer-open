@@ -4,6 +4,9 @@
 
 Win11 的**新式简洁菜单**和**旧式完整菜单**里都有这一条，都带图标。
 
+- 仓库：<https://github.com/ame-code/dsh-explorer-open>
+- npm：`dsh-explorer-open`
+
 ## 功能
 
 | 在哪儿右键 | 打开的文件夹 | 放进新会话的草稿 |
