@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Open with dsh",
+    "description": "Adds an \"Open with dsh\" entry to the Windows Explorer context menu that opens the folder in dsh and starts a new session."
+  }
+}

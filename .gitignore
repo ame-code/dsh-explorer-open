@@ -1,0 +1,7 @@
+# 本地临时目录与构建产物
+.probe/
+win11/build/
+node_modules/
+*.log
+win11/package/*.dll
+win11/package/*.exe

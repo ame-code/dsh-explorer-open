@@ -1,0 +1,2 @@
+// PE 清单资源：把 MSIX 身份嵌进 DLL，否则 Explorer 不加载该 shell 扩展。
+1 24 "msix.manifest"

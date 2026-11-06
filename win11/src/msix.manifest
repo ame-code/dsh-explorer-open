@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <assemblyIdentity type="win32" name="DshOpenWith.Local" version="1.0.0.0" processorArchitecture="amd64" />
+  <!-- Explorer only loads the shell extension if the DLL carries its MSIX identity.
+       publisher / packageName / applicationId must match AppxManifest.xml exactly. -->
+  <msix xmlns="urn:schemas-microsoft-com:msix.v1"
+        publisher="CN=DshOpenWith"
+        packageName="DshOpenWith.Local"
+        applicationId="App" />
+</assembly>

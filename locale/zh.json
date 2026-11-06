@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "通过 dsh 打开",
+    "description": "在 Windows 资源管理器的右键菜单里加入“通过 dsh 打开”，一点就在 dsh 中打开对应文件夹并新建会话。"
+  }
+}

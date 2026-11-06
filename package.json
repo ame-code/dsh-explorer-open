@@ -1,0 +1,40 @@
+{
+  "name": "dsh-explorer-open",
+  "version": "1.0.0",
+  "description": "Windows 资源管理器右键菜单里的「通过 dsh 打开」：在文件夹空白处、文件夹或文件上右键，直接在 dsh 中打开该文件夹并新建会话。",
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "windows",
+    "explorer",
+    "context-menu",
+    "iexplorercommand",
+    "msix"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "lib",
+    "native",
+    "assets",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg"
+  ],
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": ["@deepseek-ai/dsh-client-ui-conversation"]
+    }
+  }
+}
