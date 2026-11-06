@@ -256,8 +256,21 @@ powershell -File install-msix.ps1  # 或让插件自己装
 包名改成 `dsh-explorer-open` 之后，JS/PS 层的内部标识也统一了（原生组件仍是 `DshOpenWith.Local`，证书/包身份不动）：
 状态目录 `~/.dsh/dsh-explorer-open/`、接口 `/api/plugins/dsh-explorer-open/request`、请求头 `x-dsh-explorer-open`、日志前缀 `[dsh-explorer-open]`、环境变量 `DSH_EXPLORER_OPEN_{NO_MSIX,EXE,REG_BASE,TEST_HOME}`。旧的 `~/.dsh/dsh-open-with/` 目录可以直接删掉（里面的 launch.ps1/config.json/dsh.ico 下次启用会重建）。
 
-### 8.5 还没做的
+### 8.5 发布记录（2026-11-07）
 
-1. 本机 `npm whoami` 未登录 → 发版需要用户执行 `npm login`（或提供 token）。
-2. 没 `git init`，也没有 GitHub 仓库地址（README 里暂未放链接）。
-3. 用户重启 dsh 后要验证：文件右键草稿里出现 `@文件`、两个菜单仍在、新式菜单图标正常。
+- 仓库：<https://github.com/ame-code/dsh-explorer-open>，分支 `main`，最新提交 `d842d3f`（版本改 0.1.0）。
+- npm：`dsh-explorer-open@0.1.0` 已上线，`dist-tags.latest = 0.1.0`；
+  tarball `https://registry.npmjs.org/dsh-explorer-open/-/dsh-explorer-open-0.1.0.tgz`，
+  211224 字节，`shasum 2b7ea87f29b7305238a7bb3d6fb862bf0ccaaebf`，19 个文件（含 `native/DshOpenWith.msix` 与 `assets/dsh.ico`）。
+- 历史遗留：先误发过 `1.0.0`（`npm unpublish --force` 撤销，npm 留下占位版本 `0.0.0-stage`，可忽略）。
+- **官方渠道已实测**：`plugin_manager remove_bundle dsh-explorer-open` → `install_bundle target=dsh-explorer-open`（裸包名，走 registry）→
+  `+ dsh-explorer-open 0.1.0`，装出来是真实目录（非 link），`lib/`、`native/`、`assets/` 齐全。**用户粘包名即可安装**。
+- 验证完已切回开发用 link：`remove_bundle` → `install_bundle target=E:\work\tools\dsh-explorer-open`，
+  profile 里恢复 `"dsh-explorer-open": "link:E:/work/tools/dsh-explorer-open"`。
+- 切回后复核：三个注册表键默认值仍为「通过 dsh 打开」、`Get-AppxPackage DshOpenWith.Local` = `1.0.0.7`。
+
+### 8.6 还没做的
+
+1. 用户重启 dsh 后要验证：文件右键草稿里出现 `@文件`；空白处/文件夹/文件三种右键都仍在；新式菜单图标正常；`~/.dsh/dsh-explorer-open/` 目录被重建。
+2. 真要进 `dsh-plugin-market` 需要向那边提交收录（不是发 npm 就自动出现）。
+3. 升级路径（用户已装旧版本 → 新版本）还没真实演练过。
