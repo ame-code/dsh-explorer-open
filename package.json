@@ -28,6 +28,12 @@
     "./locale/*.json": "./locale/*.json",
     "./icon": "./icon.svg"
   },
+  "scripts": {
+    "test": "node test/client-test.mjs && node test/host-test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "files": [
     "index.js",
     "client.js",
