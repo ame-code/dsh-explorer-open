@@ -23,9 +23,9 @@ std::wstring LogPath() {
   wchar_t buf[MAX_PATH] = {0};
   DWORD n = GetEnvironmentVariableW(L"LOCALAPPDATA", buf, MAX_PATH);
   if (n == 0 || n >= MAX_PATH) n = GetEnvironmentVariableW(L"USERPROFILE", buf, MAX_PATH);
-  if (n == 0 || n >= MAX_PATH) return L"C:\\Windows\\Temp\\dsh-open-with-command.log";
+  if (n == 0 || n >= MAX_PATH) return L"C:\\Windows\\Temp\\dsh-explorer-open-command.log";
   std::wstring path(buf);
-  path += L"\\dsh-open-with-command.log";
+  path += L"\\dsh-explorer-open-command.log";
   return path;
 }
 
@@ -65,22 +65,14 @@ const wchar_t* kMenuTooltip =
 // {B4C9C3E5-1F0B-4D62-9E37-3A5C1B8FA0D1}
 const GUID kCmdClsid = {0xB4C9C3E5, 0x1F0B, 0x4D62, {0x9E, 0x37, 0x3A, 0x5C, 0x1B, 0x8F, 0xA0, 0xD1}};
 
-// 启动器固定复制到 %USERPROFILE%\.dsh\dsh-open-with\launch.ps1
+// 启动器固定复制到 %USERPROFILE%\.dsh\dsh-explorer-open\launch.ps1
 std::wstring LauncherPath() {
   wchar_t profile[MAX_PATH] = {0};
   DWORD n = GetEnvironmentVariableW(L"USERPROFILE", profile, MAX_PATH);
   if (n == 0 || n >= MAX_PATH) return std::wstring();
   std::wstring path(profile);
-  path += L"\\.dsh\\dsh-open-with\\launch.ps1";
+  path += L"\\.dsh\\dsh-explorer-open\\launch.ps1";
   return path;
-}
-
-std::wstring ParentFolderOf(const std::wstring& path) {
-  DWORD attrs = GetFileAttributesW(path.c_str());
-  if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY)) return path;
-  size_t cut = path.find_last_of(L"\\/");
-  if (cut == std::wstring::npos) return std::wstring();
-  return path.substr(0, cut);
 }
 
 std::wstring ModuleDir() {
@@ -99,7 +91,8 @@ void LogHr(const wchar_t* what, HRESULT hr) {
   AppendLog(buf);
 }
 
-bool FolderFromShellItemArray(IShellItemArray* items, std::wstring* folder) {
+// 取第一个选中项的完整路径：可能是文件夹，也可能是文件（引用文件时要保留文件本身）。
+bool SelectedPath(IShellItemArray* items, std::wstring* selection) {
   if (!items) {
     AppendLog(L"items=null");
     return false;
@@ -136,11 +129,11 @@ bool FolderFromShellItemArray(IShellItemArray* items, std::wstring* folder) {
     AppendLog(L"path empty");
     return false;
   }
-  *folder = ParentFolderOf(path);
-  return !folder->empty();
+  *selection = path;
+  return true;
 }
 
-void RunLauncher(const std::wstring& folder) {
+void RunLauncher(const std::wstring& selection) {
   std::wstring launcher = LauncherPath();
   if (launcher.empty() || !PathFileExistsW(launcher.c_str())) {
     // 插件没装好时不要静默失败：把提示写进临时文件太吵，这里直接放弃。
@@ -148,7 +141,7 @@ void RunLauncher(const std::wstring& folder) {
   }
   std::wstring cmd = L"\"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\""
                      L" -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"" +
-                     launcher + L"\" \"" + folder + L"\"";
+                     launcher + L"\" \"" + selection + L"\"";
   STARTUPINFOW si = {sizeof(si)};
   si.dwFlags = STARTF_USESHOWWINDOW;
   si.wShowWindow = SW_HIDE;
@@ -206,20 +199,20 @@ class Command final : public IExplorerCommand {
   }
   IFACEMETHODIMP GetState(IShellItemArray* items, BOOL, EXPCMDSTATE* state) override {
     if (!state) return E_POINTER;
-    std::wstring folder;
-    const bool ok = FolderFromShellItemArray(items, &folder);
-    AppendLog(ok ? (L"GetState enabled " + folder) : std::wstring(L"GetState unresolved"));
+    std::wstring selection;
+    const bool ok = SelectedPath(items, &selection);
+    AppendLog(ok ? (L"GetState enabled " + selection) : std::wstring(L"GetState unresolved"));
     *state = ECS_ENABLED;
     return S_OK;
   }
   IFACEMETHODIMP Invoke(IShellItemArray* items, IBindCtx*) override {
-    std::wstring folder;
-    if (!FolderFromShellItemArray(items, &folder)) {
-      AppendLog(L"Invoke: no folder");
+    std::wstring selection;
+    if (!SelectedPath(items, &selection)) {
+      AppendLog(L"Invoke: no selection");
       return E_FAIL;
     }
-    AppendLog(L"Invoke folder=" + folder + L" launcher=" + LauncherPath());
-    RunLauncher(folder);
+    AppendLog(L"Invoke selection=" + selection + L" launcher=" + LauncherPath());
+    RunLauncher(selection);
     return S_OK;
   }
   IFACEMETHODIMP EnumSubCommands(IEnumExplorerCommand** out) override {

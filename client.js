@@ -2,6 +2,7 @@ window.__ModuleLoader__.load({
   id: 'dsh-explorer-open',
   factory(require) {
     const REQUEST_URL = '/api/plugins/dsh-explorer-open/request'
+    const ACK_URL = '/api/plugins/dsh-explorer-open/ack'
     // 自定义请求头：跨站页面无法在不触发预检的情况下带上它，
     // 可以挡住别的网页偷偷 GET 掉排队中的请求。
     const REQUEST_HEADER = 'x-dsh-explorer-open'
@@ -13,6 +14,16 @@ window.__ModuleLoader__.load({
         const log = (message, error) => {
           if (error === undefined) console.info(`[dsh-explorer-open] ${message}`)
           else console.warn(`[dsh-explorer-open] ${message}`, error)
+        }
+
+        /** 把处理进度回报给宿主（写 trace.log），失败不影响主流程。 */
+        function ack(stage, detail) {
+          try {
+            const url = `${ACK_URL}?stage=${encodeURIComponent(stage)}&detail=${encodeURIComponent(detail ?? '')}`
+            void fetch(url, { cache: 'no-store', headers: { [REQUEST_HEADER]: '1' } })
+          } catch {
+            // 忽略
+          }
         }
 
         /** 打开工作区（已存在则复用），在其中新建一个会话，再切过去。 */
@@ -113,9 +124,12 @@ window.__ModuleLoader__.load({
           for (const request of data.requests) {
             if (request === null || typeof request.folder !== 'string') continue
             const file = typeof request.file === 'string' ? request.file : undefined
+            ack('start', file ?? request.folder)
             try {
               await handle(request.folder, file)
+              ack('ok', file ?? request.folder)
             } catch (error) {
+              ack('fail', `${file ?? request.folder} :: ${error?.message ?? error}`)
               log(`打开失败: ${request.folder}`, error)
             }
           }

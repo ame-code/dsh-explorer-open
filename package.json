@@ -1,6 +1,6 @@
 {
   "name": "dsh-explorer-open",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Windows 资源管理器右键菜单里的「通过 dsh 打开」：在文件夹空白处、文件夹或文件上右键，直接在 dsh 中打开该文件夹并新建会话。",
   "author": "ame-code",
   "repository": {

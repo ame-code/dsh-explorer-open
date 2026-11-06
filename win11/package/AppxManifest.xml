@@ -13,7 +13,7 @@
   <Identity
     Name="DshOpenWith.Local"
     Publisher="CN=DshOpenWith"
-    Version="1.0.0.7"
+    Version="1.0.0.8"
     ProcessorArchitecture="x64" />
 
   <Properties>
