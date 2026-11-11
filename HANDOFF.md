@@ -294,3 +294,34 @@ powershell -File install-msix.ps1  # 或让插件自己装
 
 **发版注意**：npm 上的 `0.1.0` 内置的 MSIX 仍是旧的 `1.0.0.7`（同样有这两个 bug），必须发 `0.1.1` 覆盖；本地 `package.json` 已是 `0.1.1`。
 另：`plugin_manager remove_bundle` + `install_bundle` 会让宿主**热重建插件**（实测服务停止后旧路由返回 401、重装后新路由立即生效），改宿主代码不必重启 dsh；但客户端 bundle 仍需刷新页面。
+
+## 10. dsh 0.2.2-rc.2 兼容性核对（2026-11-12）
+
+本机当时是 0.2.2-rc.1（`DeepSeek Harness.exe` ProductVersion 0.2.2.0，卸载项 0.2.2-rc.1）。rc.2 只在 GitHub 上有 tag（`dsh-v0.2.2-rc.2`，2026-11-11），npm 上各 `@deepseek-ai/dsh-*` 仍停在 0.2.2-rc.1，拿不到可运行的 rc.2，所以做的是**源码契约核对**：
+
+```bash
+git clone --filter=blob:none --no-checkout --depth 1 --branch dsh-v0.2.2-rc.2 \
+  https://github.com/deepseek-ai/deepseek-harness "$env:TEMP\dsh-rc2"
+git sparse-checkout set packages .agents
+```
+
+逐文件与 rc.1（`gh api contents?ref=dsh-v0.2.2-rc.1`）比对，结果：
+
+| 契约 | rc2 结论 |
+| --- | --- |
+| `packages/client/ui-workspace/src/client/navigation.ts`（`openWorkspace`/`openSession`/`startSession`、`StartSessionOptions`） | 0 差异 |
+| `packages/api/workspace-controller/src/client/service.ts`（`create({path})`、`super(ctx,'workspaces')`） | 0 差异 |
+| `packages/host/webserver/src/index.ts`（`WebRoute`/`WebResourceRoute`，只答 GET/HEAD） | 0 差异 |
+| `packages/client/modules/src/client/manifest.ts`（`dsh.client` 校验、`__ModuleLoader__.load({id,factory})`、`platform==='web'`） | 0 差异 |
+| `packages/util/package-manifest/src/types.ts`（`dsh.bundle.patch`、`dsh.client.*`） | 0 差异 |
+| `packages/api/session-controller/src/client/contract/sessions.ts`（`sessions.create`/`binding`、`SessionTarget`） | 仅注释改写 |
+| `packages/client/ui-conversation/src/client/contract/input.ts` | 新增 `insertQuote`，`requestDraftInitialization`/`DraftInitializationOptions` 未变 |
+
+结论：插件用到的接口在 rc.2 全部保持，**不需要改代码**。rc.2 的相关变化都在别处：
+
+- 新增插件**更新**流程（`updateBundle`，registry/git 两类 bundle），装包时的兼容检查会读 `engines.dsh`（否则看 `@deepseek-ai/dsh*` 的 `peerDependencies`）。我们两者都没声明，所以不受门禁影响。
+- 浏览器启动审计（`packages/client/web/src/boot-client.ts`）的必活名单只有 7 个核心包（`dsh-client-modules`、`dsh-api-session-controller`、`dsh-client-ui-renderer`、`dsh-client-ui-layout`、`dsh-client-ui-session`、`dsh-client-ui-chat`、`dsh-client-ui-sidebar`），本插件不在其中：注入没满足时只产生一条 console 警告，不会拖垮启动。
+- 仓库内新增「插件入口不得额外导出值」的 CI 门禁（`verify-plugin-entry-exports`），只约束仓库自身的包，不影响第三方插件；我们的 `index.js` 本来就只导出 `apply` 和 `inject`。
+- `/api` 自注册路由仍然只被 `/` 与 connection 的 cookie 鉴权覆盖，本插件的 `/api/plugins/dsh-explorer-open/*` 行为不变。
+
+遗留：rc.2 真机回归（升级后重跑右键三处 + 文件 `@引用`）还没做；`README.md` 已加「兼容性」一节。

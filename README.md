@@ -27,6 +27,23 @@ Win11 的**新式简洁菜单**和**旧式完整菜单**里都有这一条，都
 
 原生组件（`win11/`）有独立的版本号，见 `native/version.txt`；JS 侧版本见 `package.json`。
 
+## 兼容性
+
+| dsh 版本 | 状态 |
+| --- | --- |
+| 0.2.2-rc.1 | 实测通过：右键菜单 → 新会话 → 文件 `@引用` 全流程 |
+| 0.2.2-rc.2 | 源码契约核对通过，尚未真机回归 |
+
+对 0.2.2-rc.2 的核对范围（rc.2 与 rc.1 逐文件比对，均无破坏性改动）：
+
+- `uiWorkspace.openWorkspace / openSession / startSession` 与 `StartSessionOptions`
+- `workspaces.create({ path })`、`sessions.create({ workspaceId, cwd })`、`sessions.binding(id)`
+- `conversation.input.requestDraftInitialization(binding, options)` 与 `DraftInitializationOptions`（rc.2 只新增了 `insertQuote`）
+- `webServer.register` 的 `WebResourceRoute`（`kind / path / resource`，只答 GET/HEAD）
+- 客户端清单 `dsh.bundle.patch`、`dsh.client.platform/inject/immediately`、`window.__ModuleLoader__.load({ id, factory })`
+
+插件没有声明 `engines.dsh`，所以 rc.2 新增的插件版本门禁（`engines.dsh` 或 `@deepseek-ai/dsh*` peer 不满足时拒绝安装/启用）不会拦它；同时也意味着旧版本 dsh 上不会被提前拦住。
+
 ## 安装
 
 ### 从 npm 安装（推荐）
