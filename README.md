@@ -7,6 +7,8 @@ Win11 的**新式简洁菜单**和**旧式完整菜单**里都有这一条，都
 - 仓库：<https://github.com/ame-code/dsh-explorer-open>
 - npm：`dsh-explorer-open`
 
+![Windows 11 右键菜单里的「通过 dsh 打开」](docs/win11-context-menu.png)
+
 ## 功能
 
 | 在哪儿右键 | 打开的文件夹 | 放进新会话的草稿 |
