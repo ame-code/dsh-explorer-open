@@ -91,7 +91,7 @@
 
 ## 4. 当前文件状态
 
-目录：`E:\work\tools\dsh-open-with\`（**仓库根就是插件包**，原来的 `plugin/` 子目录在开源前已上移）
+目录：`E:\work\tools\dsh-explorer-open\`（**仓库根就是插件包**，原来的 `plugin/` 子目录在开源前已上移）
 
 | 文件 | 作用 | 状态 |
 |---|---|---|
@@ -100,7 +100,7 @@
 | `index.js` | `export { apply } from './lib/index.js'`、`export const inject = []` | 已写 |
 | `lib/index.js` | 宿主侧：注入菜单、复制启动器、轮询待办文件、注册 `/api/plugins/dsh-explorer-open/request` | 离线自测全绿，**未在真实进程验证** |
 | `lib/registry.js` | 用 `reg.exe` 写/删 `HKCU\Software\Classes\{Directory\Background, Directory, *}\shell\OpenWithDsh` | 实测写入/删除通过 |
-| `lib/launch.ps1` | 启动器：文件→父目录、写 `~/.dsh/dsh-open-with/pending.json`（无 BOM）、启动 `DeepSeek Harness.exe` | 实测通过（中文路径 + 文件参数） |
+| `lib/launch.ps1` | 启动器：文件→父目录、写 `~/.dsh/dsh-explorer-open/pending.json`（无 BOM）、启动 `DeepSeek Harness.exe` | 实测通过（中文路径 + 文件参数） |
 | ~~`lib/launch.js`~~ | 旧的 node 版启动器 | **已删除** |
 | `client.js` | 页面侧：轮询接口 → `workspaces.create` → `sessions.create` → `openSession`（失败退回 `openWorkspace`）；文件请求再写草稿 `@引用` | 离线自测全绿，**未在真实页面验证** |
 | `lib/win11.js` | 新式菜单的 MSIX 包管理：`installPackage()`/`removePackage()`/`installedVersion()`，比对 `native/version.txt` | 实测装/卸通过 |
@@ -135,7 +135,7 @@
 
 1. `lib/launch.js` 已删除，`package.json` 的 `files` 用 `lib` 整目录，不残留。
 2. 启动器改成 PowerShell 5.1 可跑的形式，菜单命令为
-   `powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "<launch.ps1>" "%V"`；`launch.ps1` 本身在安装时被复制到 `%USERPROFILE%\.dsh\dsh-open-with\launch.ps1`，菜单不依赖开发目录。
+   `powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "<launch.ps1>" "%V"`；`launch.ps1` 本身在安装时被复制到 `%USERPROFILE%\.dsh\dsh-explorer-open\launch.ps1`，菜单不依赖开发目录。
 3. PowerShell 写 UTF-8 坑：用 `[System.IO.File]::WriteAllText($temp, $json, [System.Text.UTF8Encoding]::new($false))`，实测首字节 `0x7b`，中文路径正确。
    反向坑：**无 BOM 的 .ps1 会被 5.1 按 GBK 解码**，所以 `launch.ps1` 源码全 ASCII，绝不要往里加中文。
 4. `client.js` 直接 `fetch('/api/plugins/dsh-explorer-open/request')` 可用（与 `dsh-client-auto-continue` 同款做法）。
@@ -143,7 +143,7 @@
 6. 三个菜单键都写：`Directory\Background`（空白处）、`Directory`（文件夹）、`*`（任意文件，`%V` 是文件路径，启动器取父目录）。目录是 HKCU，Win11 的新式菜单与旧式「显示更多选项」都会读到。
 7. 重复触发防护：待办文件带 `token` + 时间戳，读后立即删除，只认 2 分钟内的请求，同文件夹 1.5s 内去重。
 8. 关闭插件即移除注册表：`ctx.effect` 清理函数调 `removeLegacy()` + `refreshExplorer()`，自测已验证。
-9. 接口加了 `x-dsh-open-with: 1` 请求头校验（跨站页面带自定义头会触发预检被拦），非本页面请求返回 403。
+9. 接口加了 `x-dsh-explorer-open: 1` 请求头校验（跨站页面带自定义头会触发预检被拦），非本页面请求返回 403。
 10. `workspaces.create({path})` 对同一路径是幂等的（宿主 `dsh-workspace/lib/index.js:408` 注释明确），所以已存在的文件夹不会被重复建工作区。
 
 仍需确认（真机，见第 6 节）：
@@ -161,14 +161,14 @@
 4. 点一下（建议点一个还没在 dsh 里打开过的新文件夹）：应新建工作区 + 新建会话 + 界面跳过去。
 5. 再点另一个文件夹，确认每次都是新会话，不是复用旧会话。
 6. 关闭插件（`plugin_manager set_plugin` 关闭，或从 profile 移除后重启），确认三个右键菜单项消失；重新启用后恢复。
-7. 全程盯日志里的 `右键菜单已写入=...` 与 `launch.ps1` 路径，确认指向 `%USERPROFILE%\.dsh\dsh-open-with\launch.ps1` 而不是开发目录。
+7. 全程盯日志里的 `右键菜单已写入=...` 与 `launch.ps1` 路径，确认指向 `%USERPROFILE%\.dsh\dsh-explorer-open\launch.ps1` 而不是开发目录。
 
 如果第 3 步不出现菜单：先 `reg query` 三个键在不在（在 → 是菜单缓存/刷新问题，跑 `refreshExplorer`；不在 → 宿主 `apply` 没跑，看是否有加载报错）。
 如果第 4 步不跳转：先在浏览器/DevTools 看 `/api/plugins/dsh-explorer-open/request` 有没有被轮询（client bundle 是否注入），再看 `workspaces.create` 抛什么错。
 
 ## 7. 工作环境注意事项
 
-- 工作目录：`E:\work\tools\dsh-open-with`（Bash 路径 `E:/work/tools/dsh-open-with`。2026-11-06 23:40 用户把目录从 `右键文件夹在dsh中打开` 改成了这个名字，profile 里的 link 已用 `remove_bundle` + `install_bundle` 重新指向新路径）
+- 工作目录：`E:\work\tools\dsh-explorer-open`（Bash 路径 `E:/work/tools/dsh-explorer-open`。2026-11-06 23:40 用户把目录从 `右键文件夹在dsh中打开` 改成了这个名字，profile 里的 link 已用 `remove_bundle` + `install_bundle` 重新指向新路径）
 - 文件策略 danger-full-access，但**审批被禁用**，不能申请提权。
 - `ops_write_file` / `ops_read_files` 对某些路径会被 `PUBLICATION_DENIED` / `PATH_RESTRICTED` 拒绝，**改用标准 `write` / `read` 工具即可**。
 - 上一轮会话多次出现「工具调用块发成空内容」的格式错误，**教训：单次只发一个短调用，避免长串并行调用**。
@@ -213,16 +213,16 @@ powershell -File install-msix.ps1  # 或让插件自己装
 1. **`GetState` 返回 `ECS_HIDDEN` 会让菜单项彻底消失**：菜单构建时 Explorer 传给 `GetState` 的 `IShellItemArray` 是 **null**（托管代理进程里），拿不到路径就不要自作聪明地隐藏。现在 `GetState` 恒返回 `ECS_ENABLED`，路径解析只在 `Invoke` 里做。
 2. **代理进程里 `GetModuleFileNameW(NULL)` 拿到的是代理进程的路径**（`C:\Windows\system32\`），所以图标路径要用 `DllMain` 里保存的 `g_hinst`：`GetModuleFileNameW(g_hinst, ...)`。
 3. **`-static` 必须加**：否则 DLL 依赖 `libwinpthread-1.dll`，`WindowsApps` 里没有这个文件，加载静默失败。
-4. 调试靠 `AppendLog`：只在 `DSH_OPEN_WITH_DEBUG=1` 时写 `%LOCALAPPDATA%\dsh-open-with-command.log`（UTF-16LE，读的时候要 `Get-Content -Encoding Unicode`）。
+4. 调试靠 `AppendLog`：只在 `DSH_OPEN_WITH_DEBUG=1` 时写 `%LOCALAPPDATA%\dsh-explorer-open-command.log`（UTF-16LE，读的时候要 `Get-Content -Encoding Unicode`）。
 5. **绝不要 `taskkill explorer.exe` 再用 `cmd start` 重启**：踩过一次，用户桌面黑屏、任务栏消失。要重启就用 `powershell -Command "Stop-Process -Name explorer -Force; Start-Process explorer.exe"`，并且先跟用户确认。
 
 ## 7. 剩余待办
 
-1. 重启 dsh，确认新宿主代码生效：启动日志里应出现 `[dsh-open-with] 新式菜单已就绪 ...`；关闭插件时两条菜单都要消失（旧式改注册表、新式卸包）。
+1. 重启 dsh，确认新宿主代码生效：启动日志里应出现 `[dsh-explorer-open] 新式菜单已就绪 ...`；关闭插件时两条菜单都要消失（旧式改注册表、新式卸包）。
 2. ~~`native/` 手工同步~~ 已解决：`win11/build.sh` 末尾自动把 `DshOpenWith.msix`、`dsh-open-with.cer`、`version.txt` 同步到 `native/`（`trust-cert.*` 是手写文件，不在同步列表里）。所以改原生组件的流程是：改源码 → `bash win11/build.sh` → 插件下次启动自动升级包（版本号变了就重装）。
 3. 清理：已删除 `win11/build/stage.*`、`.probe/` 里的临时脚本与 `home/`、旧诊断日志。**保留** `.probe/host-test.mjs`、`.probe/client-test.mjs`、`.probe/main.js`（回归测试用）和 `.probe/asar/`（app.asar 解压副本，读 skill 文档要用，删了要重新解）。`win11/build/sdk/` 可保留。
 4. 分发形态：目前证书是自签的，别人装必须先跑一次 `trust-cert.bat`（管理员）。若要做成给别人用的安装包，需要正经的代码签名证书，或者接受「新式菜单只在本机可用」。
-5. 目录被改名后（2026-11-06 已发生一次）：profile 里的 `link:` 会指向旧路径导致插件加载失败。修复方式是 `plugin_manager remove_bundle @local/dsh-open-with` 再 `install_bundle <新路径>\plugin`（不能直接 install，会报 `already-installed`）。
+5. 目录被改名后（2026-11-06 已发生一次）：profile 里的 `link:` 会指向旧路径导致插件加载失败。修复方式是 `plugin_manager remove_bundle dsh-explorer-open` 再 `install_bundle <新路径>\plugin`（不能直接 install，会报 `already-installed`）。
 
 ## 8. 文件右键「@引用」与开源打包（2026-11-07）
 
@@ -236,13 +236,13 @@ powershell -File install-msix.ps1  # 或让插件自己装
   `ctx.get('conversation').input.requestDraftInitialization(binding, { prompt, clearPreviousDraft: true })`，
   需要 `ctx.sessions.binding(sessionId)` 先就绪，所以有 20×100ms 重试；拿不到就退回 `uiWorkspace.startSession(workspaceId, { prompt, clearPreviousDraft: true })`。
 - 为什么这么做：草稿里的 `@路径` 本身就是引用语法（`dsh-client-ui-reference/lib/client.js` 的 `fileReferenceRule`，正则 `/(?<!\S)(@"[^"\n]+"|@[^\s]+)/gu`），提交时按会话 cwd 解析成文件引用，不需要额外的 UI API。
-- 启动器的 exe 路径不再写死：先读 `~/.dsh/dsh-open-with/config.json` 的 `exe`（插件启用时写 `process.execPath`），其次 `DSH_EXPLORER_OPEN_EXE`，最后才是几个常见安装路径。
-- 菜单图标也不再借用 `D:\DeepSeek Harness\resources\tray.ico`：改用自带 `assets/dsh.ico`，启用时复制到 `~/.dsh/dsh-open-with/dsh.ico`。
+- 启动器的 exe 路径不再写死：先读 `~/.dsh/dsh-explorer-open/config.json` 的 `exe`（插件启用时写 `process.execPath`），其次 `DSH_EXPLORER_OPEN_EXE`，最后才是几个常见安装路径。
+- 菜单图标也不再借用 `D:\DeepSeek Harness\resources\tray.ico`：改用自带 `assets/dsh.ico`，启用时复制到 `~/.dsh/dsh-explorer-open/dsh.ico`。
 
 ### 8.2 仓库结构（仓库根 = 插件包）
 
-原来插件在 `plugin/` 子目录，开源前整体上移，现在 `package.json` 就在仓库根。包名从 `@local/dsh-open-with` 改成 **`dsh-explorer-open`**（`dsh-open-with` 在 npm 上已被别人占用）。profile 里已重新挂过：
-`plugin_manager remove_bundle @local/dsh-open-with` → `install_bundle E:\\work\\tools\\dsh-open-with`。
+原来插件在 `plugin/` 子目录，开源前整体上移，现在 `package.json` 就在仓库根。最初的包名候选 `dsh-open-with` 在 npm 上已被占用，于是定名 `dsh-explorer-open`；0.1.3 起又迁到 `@reed-io/dsh-explorer-open`（见第 11 节）。profile 里已重新挂过：
+`plugin_manager remove_bundle dsh-explorer-open` → `install_bundle E:\work\tools\dsh-explorer-open`。
 
 `npm pack` 产物 19 个文件（不含 `test/`、`win11/`、`.probe/`），230KB 左右，主体是 `native/DshOpenWith.msix`。
 
@@ -254,7 +254,7 @@ powershell -File install-msix.ps1  # 或让插件自己装
 ### 8.4 内部命名统一（2026-11-07）
 
 包名改成 `dsh-explorer-open` 之后，JS/PS 层的内部标识也统一了（原生组件仍是 `DshOpenWith.Local`，证书/包身份不动）：
-状态目录 `~/.dsh/dsh-explorer-open/`、接口 `/api/plugins/dsh-explorer-open/request`、请求头 `x-dsh-explorer-open`、日志前缀 `[dsh-explorer-open]`、环境变量 `DSH_EXPLORER_OPEN_{NO_MSIX,EXE,REG_BASE,TEST_HOME}`。旧的 `~/.dsh/dsh-open-with/` 目录可以直接删掉（里面的 launch.ps1/config.json/dsh.ico 下次启用会重建）。
+状态目录 `~/.dsh/dsh-explorer-open/`、接口 `/api/plugins/dsh-explorer-open/request`、请求头 `x-dsh-explorer-open`、日志前缀 `[dsh-explorer-open]`、环境变量 `DSH_EXPLORER_OPEN_{NO_MSIX,EXE,REG_BASE,TEST_HOME}`。旧的 `~/.dsh/dsh-explorer-open/` 目录可以直接删掉（里面的 launch.ps1/config.json/dsh.ico 下次启用会重建）。
 
 ### 8.5 发布记录（2026-11-07）
 
@@ -279,7 +279,7 @@ powershell -File install-msix.ps1  # 或让插件自己装
 
 现象：无论在哪个文件夹右键，都只是把 dsh 调到前面，不打开工作区、不新建会话。
 
-根因一：`win11/src/dsh_open_with.cpp` 里 `LauncherPath()` 仍写着 `%USERPROFILE%\.dsh\dsh-open-with\launch.ps1`（改名前的目录）。
+根因一：`win11/src/dsh_open_with.cpp` 里 `LauncherPath()` 仍写着 `%USERPROFILE%\.dsh\dsh-explorer-open\launch.ps1`（改名前的目录）。
 新式菜单因此把 `pending.json` 写进旧目录，而宿主读的是 `~/.dsh/dsh-explorer-open/`，请求永远没人取。
 根因二：DLL 传给启动器的是 `ParentFolderOf(路径)`，文件信息被丢掉，所以即使目录对了，文件右键也不会有 `@引用`。
 
@@ -325,3 +325,34 @@ git sparse-checkout set packages .agents
 - `/api` 自注册路由仍然只被 `/` 与 connection 的 cookie 鉴权覆盖，本插件的 `/api/plugins/dsh-explorer-open/*` 行为不变。
 
 遗留：rc.2 真机回归（升级后重跑右键三处 + 文件 `@引用`）还没做；`README.md` 已加「兼容性」一节。
+
+## 11. 2026-11-12/13：另一台机器「菜单不出现」、自动提权修复（0.1.3）、包名迁到 scope
+
+### 11.1 用户机器（aleaf）的现象与根因
+- 现象：插件装上了（`dependencies: 0.1.2`、`in bundles: True`、三个经典键 PRESENT），但 Win11 新式菜单没有条目；`Get-AppxPackage DshOpenWith.Local` 为空、证书不在 `LocalMachine\TrustedPeople`。
+- 运行目录里有 `.trust-prompt`（24 字节）= 自动提权分支跑过、写了 12 小时冷却标记，但 2 分钟轮询内证书始终没被信任。
+- 该机器策略：`EnableLUA=1`、`ConsentPromptBehaviorAdmin=0`（提权不提示、静默通过）、`PromptOnSecureDesktop=0`、当前令牌 `Medium` + `Administrators`「只用于拒绝」。也就是说提权**不会弹窗**，用户完全感知不到，失败也无声。
+- 手工执行 `native\trust-cert.ps1` 后证书立刻进 `TrustedPeople`，随后 `Add-AppxPackage` 成功 → `1.0.0.8 / Developer / Ok`，菜单恢复。说明脚本本身没问题，问题在「静默失败 + 无日志 + 失败也锁 12 小时」。
+- 教训：静默提权环境里，任何「弹个 UAC 就好」的设计都不可验证，必须落盘日志 + 失败可重试 + 给人看得懂的说明。
+
+### 11.2 0.1.3 改了什么
+- `lib/index.js`：只有装成功（`current` / `installed`）才清除 `.trust-prompt` 并删掉 `NEED-TRUST.txt`；超时/失败一律 `clearTrustPrompt()`，下次启动继续重试；新增 `writeTrustHelp(reason)`，把「用管理员 PowerShell 执行这一条」写进 `~/.dsh/dsh-explorer-open/NEED-TRUST.txt`；未尝试提权（`DSH_EXPLORER_OPEN_NO_ELEVATE=1` 或冷却期）也写这份说明。
+- `native/trust-cert.ps1`：全程追加日志到 `%LOCALAPPDATA%\dsh-explorer-open-trust.log`（首行 `start pid=… admin=… user=…`，提权用 `-Wait -PassThru` 记子进程退出码，导入后回查存储确认）；去掉 `-NoExit`，失败 `exit 1`。
+- `README.md`：安装段改成「多数情况不用敲命令；失败看 NEED-TRUST.txt 与 trust log」；本地安装段把 `plugin_manager` 换成 `dsh plugin --profile desktop add <路径>`，并注明它只写 `dependencies`、不写 `dsh.profile.bundles`。
+- 版本 `0.1.3`，提交 `851d7e5`。
+
+### 11.3 包名迁到 `@reed-io/dsh-explorer-open`
+- 起因：用户的 npm token 是按 scope 授权的（只覆盖 `@reed-io`），发全局包会 `E403`。npm 没有「迁移到 scope」操作，等价做法是用新名字重发 + 旧名字 `deprecate`。
+- 改动：`package.json` 的 `name` 改 `@reed-io/dsh-explorer-open`、加 `"publishConfig": { "access": "public" }`（scoped 包默认私有）；`cordis.patch.yml` 的 `name` 同步改，实例 `id` 仍是 `dsh-explorer-open`；`scripts/diagnose-windows.ps1` 同时识别新旧两个包名；`README` 安装名同步。
+- **不变的部分**：运行时目录 `~/.dsh/dsh-explorer-open/`、`/api/plugins/dsh-explorer-open/*`、请求头 `x-dsh-explorer-open`、环境变量 `DSH_EXPLORER_OPEN_*`、原生组件名（`DshOpenWith.Local`、`dsh-open-with.cer`）。
+- 提交 `d5ce85c`；本机 profile 已用 `remove_bundle dsh-explorer-open` → `install_bundle <仓库路径>` 重挂为 `@reed-io/dsh-explorer-open 0.1.3`，三键与 MSIX 1.0.0.8 均正常。
+- 旧包 `dsh-explorer-open@0.1.2` 已 `npm deprecate`（消息「已迁移到 @reed-io/dsh-explorer-open」）。
+
+### 11.4 `plugin_manager` 不是 CLI
+- 它是宿主内置的 **agent 工具**（在 `app.asar` 里与 `bash`/`schedule_create`/`credentials` 并列，属于 Host 自己拥有的能力），终端里敲 `plugin_manager …` 必然「无法运行」。
+- 给用户的可执行等价物：dsh 的插件界面/市场；或 `dsh plugin --profile <name> add|remove <pkg>`（转发 pnpm，只动 `dependencies`）；手动装还要把包名写进 `dsh.profile.bundles`。
+
+### 11.5 待办
+1. `@reed-io/dsh-explorer-open` 目前 registry 上只有 `0.0.0-stage` 占位，**0.1.3 还没真正发上去**，需要再 `npm publish --otp=…` 一次（新版本号 0.1.3 > 0.0.0-stage，不会被 latest 冲突挡住）。
+2. aleaf 那台机器验证：重装插件后是否只提示一次、失败时 `NEED-TRUST.txt` 是否出现。
+3. 市场投稿 YAML 的 `name:` 是仓库链接文字，不涉及包名，无需改动。
