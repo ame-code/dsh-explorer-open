@@ -49,12 +49,23 @@ if (Test-Path -LiteralPath $profilesDir) {
 		# -Encoding UTF8 必须显式指定：Windows PowerShell 5.1 默认按 ANSI(GBK) 读无 BOM 的 UTF-8，
 		# 中文描述会变成乱码并让 ConvertFrom-Json 解析失败。
 		$json = Get-Content -LiteralPath $manifest -Raw -Encoding UTF8 -ErrorAction SilentlyContinue | ConvertFrom-Json
-		$dep = $json.dependencies.'dsh-explorer-open'
-		$listed = @($json.dsh.profile.bundles) -contains 'dsh-explorer-open'
+		# 包名可能是不带 scope 的旧名，也可能是 @reed-io/... 新名，两种都认。
+		$pkgName = $null
+		$dep = $null
+		foreach ($n in @('dsh-explorer-open', '@reed-io/dsh-explorer-open')) {
+			if ($json.dependencies.PSObject.Properties.Name -contains $n) {
+				$pkgName = $n
+				$dep = $json.dependencies.$n
+				break
+			}
+		}
+		if (-not $pkgName) { $pkgName = 'dsh-explorer-open' }
+		$listed = (@($json.dsh.profile.bundles) | Where-Object { $_ -in @('dsh-explorer-open', '@reed-io/dsh-explorer-open') } | Select-Object -First 1) -ne $null
 		"profile : $($dir.Name)"
+		"  package    : $pkgName"
 		"  dependency : " + $(if ($dep) { $dep } else { '<absent>' })
 		"  in bundles : $listed"
-		$link = Join-Path $dir.FullName 'node_modules\dsh-explorer-open'
+		$link = Join-Path $dir.FullName ('node_modules\' + $pkgName)
 		if (Test-Path -LiteralPath $link) {
 			$target = (Get-Item -LiteralPath $link -Force).Target
 			"  node_modules: present" + $(if ($target) { " -> $target" } else { '' })

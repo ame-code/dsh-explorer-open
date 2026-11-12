@@ -1,4 +1,4 @@
 - insert:
     - id: dsh-explorer-open
-      name: 'dsh-explorer-open'
+      name: '@reed-io/dsh-explorer-open'
       config: {}

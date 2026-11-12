@@ -5,7 +5,7 @@
 Win11 的**新式简洁菜单**和**旧式完整菜单**里都有这一条，都带图标。
 
 - 仓库：<https://github.com/ame-code/dsh-explorer-open>
-- npm：`dsh-explorer-open`
+- npm：`@reed-io/dsh-explorer-open`
 
 ![在文件上右键选「通过 dsh 打开」，新会话的输入框里已经带着该文件的 @引用](docs/demo.png)
 
@@ -48,7 +48,7 @@ Win11 的**新式简洁菜单**和**旧式完整菜单**里都有这一条，都
 
 ### 从 npm 安装（推荐）
 
-在 dsh 的插件设置里安装 `dsh-explorer-open`，或让 agent 执行安装（bundle 安装入口接受 npm 包名）。
+在 dsh 的插件设置里安装 `@reed-io/dsh-explorer-open`，或让 agent 执行安装（bundle 安装入口接受 npm 包名）。
 
 首次启用时会自动装 Win11 新式菜单所需的 MSIX 包。这个包的签名用的是项目自签证书，它不在系统受信根里，所以第一次会被 Windows 拒绝（`0x800B0109`）。
 
@@ -69,7 +69,7 @@ Win11 的**新式简洁菜单**和**旧式完整菜单**里都有这一条，都
 dsh plugin --profile desktop add E:\work\tools\dsh-explorer-open
 ```
 
-`dsh plugin` 只是把参数转发给 profile 目录里的 pnpm，它会往 `dependencies` 写一条，但**不会**改 `dsh.profile.bundles`。要把插件挂上启动列表，还得在同一个 `package.json` 的 `dsh.profile.bundles` 数组里加一项 `"dsh-explorer-open"`（用界面安装时会自动写这两处）。
+`dsh plugin` 只是把参数转发给 profile 目录里的 pnpm，它会往 `dependencies` 写一条，但**不会**改 `dsh.profile.bundles`。要把插件挂上启动列表，还得在同一个 `package.json` 的 `dsh.profile.bundles` 数组里加一项 `"@reed-io/dsh-explorer-open"`（用界面安装时会自动写这两处）。
 
 改过代码后要重启 dsh 才会重新加载宿主侧插件；客户端 bundle 需要刷新页面。
 
