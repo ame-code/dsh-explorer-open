@@ -1,3 +1,4 @@
 @echo off
-rem Ask UAC to run trust-cert.ps1 elevated.
-powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath powershell.exe -Verb RunAs -ArgumentList '-NoProfile -ExecutionPolicy Bypass -NoExit -File \"%~dp0trust-cert.ps1\"'"
+rem Trust the self-signed certificate that signed DshOpenWith.msix.
+rem trust-cert.ps1 elevates itself through UAC; no nested quoting needed here.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0trust-cert.ps1"
