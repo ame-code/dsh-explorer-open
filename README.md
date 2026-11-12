@@ -50,15 +50,16 @@ Win11 的**新式简洁菜单**和**旧式完整菜单**里都有这一条，都
 
 在 dsh 的插件设置里安装 `dsh-explorer-open`，或让 agent 执行安装（bundle 安装入口接受 npm 包名）。
 
-首次启用时会自动装 Win11 新式菜单所需的 MSIX 包。因为是自签证书，包里没有受信的根，Windows 会拒绝安装并给出：
+首次启用时会自动装 Win11 新式菜单所需的 MSIX 包。这个包的签名用的是项目自签证书，它不在系统受信根里，所以第一次会被 Windows 拒绝（`0x800B0109`）。
 
-```
-Deployment failed with HRESULT: 0x800B0109
-```
+插件会自己处理这件事：检测到证书未受信时，它会**弹一次 UAC**（把 `native/trust-cert.ps1` 提权运行，导入证书到 `LocalMachine\TrustedPeople`），然后轮询重试安装，装好即刷新资源管理器。你只需要在弹窗里点「是」，不用手动敲任何命令。
 
-这时以管理员身份运行一次插件目录下的 `native/trust-cert.bat`（把自签证书 `dsh-open-with.cer` 导入 `LocalMachine\TrustedPeople`），然后重启 dsh 即可。只需要做一次。
+规则细节：
 
-> 只想要旧式菜单、不想动证书：设环境变量 `DSH_EXPLORER_OPEN_NO_MSIX=1` 再启动 dsh，插件就不会去装 MSIX 包。
+- 同一个安装实例 12 小时内最多弹一次，避免反复打扰；一直没点「是」也不会影响旧式菜单。
+- 不想让插件自动提权：设 `DSH_EXPLORER_OPEN_NO_ELEVATE=1`，此时只打日志，你可以自己运行 `native/trust-cert.bat`。
+- 只想要旧式菜单、完全不装 MSIX：设 `DSH_EXPLORER_OPEN_NO_MSIX=1`。
+- 用户取消过 UAC 或者提权失败时，下次启动 dsh 会自动再试。
 
 ### 从源码/本地目录安装
 
