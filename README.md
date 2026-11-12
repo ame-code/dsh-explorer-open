@@ -52,21 +52,24 @@ Win11 的**新式简洁菜单**和**旧式完整菜单**里都有这一条，都
 
 首次启用时会自动装 Win11 新式菜单所需的 MSIX 包。这个包的签名用的是项目自签证书，它不在系统受信根里，所以第一次会被 Windows 拒绝（`0x800B0109`）。
 
-插件会自己处理这件事：检测到证书未受信时，它会**弹一次 UAC**（把 `native/trust-cert.ps1` 提权运行，导入证书到 `LocalMachine\TrustedPeople`），然后轮询重试安装，装好即刷新资源管理器。你只需要在弹窗里点「是」，不用手动敲任何命令。
+插件会自己处理这件事：检测到证书未受信时，它会拉起 `native/trust-cert.ps1`（脚本自己提权，导入证书到 `LocalMachine\TrustedPeople`），然后轮询重试安装，装好即刷新资源管理器。多数情况下你不用敲任何命令，最多在弹出授权窗口时点一下「是」。
 
 规则细节：
 
-- 同一个安装实例 12 小时内最多弹一次，避免反复打扰；一直没点「是」也不会影响旧式菜单。
-- 不想让插件自动提权：设 `DSH_EXPLORER_OPEN_NO_ELEVATE=1`，此时只打日志，你可以自己运行 `native/trust-cert.bat`。
+- 只有**装成功**才记冷却；失败或超时会清掉标记，下次启动 dsh 继续重试（不会一失手就锁 12 小时）。
+- 12 小时内最多自动尝试一次，避免反复打扰；等待期间旧式菜单一直可用。
+- 提权走不通时（例如 UAC 被策略关掉、账户是标准用户、子进程被回收），插件会在 `~/.dsh/dsh-explorer-open/NEED-TRUST.txt` 写一份说明，里面就是一条可以直接粘贴的管理员命令；每一步的日志在 `%LOCALAPPDATA%\dsh-explorer-open-trust.log`。
+- 不想让插件自动提权：设 `DSH_EXPLORER_OPEN_NO_ELEVATE=1`，此时只写上面那份说明。
 - 只想要旧式菜单、完全不装 MSIX：设 `DSH_EXPLORER_OPEN_NO_MSIX=1`。
-- 用户取消过 UAC 或者提权失败时，下次启动 dsh 会自动再试。
 
 ### 从源码/本地目录安装
 
 ```powershell
 # 仓库本身就是插件包（package.json 在根目录）
-plugin_manager install_bundle E:\work\tools\dsh-open-with
+dsh plugin --profile desktop add E:\work\tools\dsh-explorer-open
 ```
+
+`dsh plugin` 只是把参数转发给 profile 目录里的 pnpm，它会往 `dependencies` 写一条，但**不会**改 `dsh.profile.bundles`。要把插件挂上启动列表，还得在同一个 `package.json` 的 `dsh.profile.bundles` 数组里加一项 `"dsh-explorer-open"`（用界面安装时会自动写这两处）。
 
 改过代码后要重启 dsh 才会重新加载宿主侧插件；客户端 bundle 需要刷新页面。
 
