@@ -4,7 +4,10 @@
 if (!window.__dshExplorerOpenClientRegistered) {
   window.__dshExplorerOpenClientRegistered = true
   window.__ModuleLoader__.load({
-    id: 'dsh-explorer-open',
+    // 这个 id 必须与 npm 包名完全一致：dsh 的 client-modules 加载完 chunk 后会按包名
+    // 查找注册记录，对不上就报 "loaded without registering ... via __ModuleLoader__.load"，
+    // 并把整个 web 启动判为失败。
+    id: '@reed-io/dsh-explorer-open',
     factory(require) {
       const REQUEST_URL = '/api/plugins/dsh-explorer-open/request'
       const ACK_URL = '/api/plugins/dsh-explorer-open/ack'

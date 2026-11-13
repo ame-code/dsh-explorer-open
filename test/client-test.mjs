@@ -86,6 +86,7 @@ async function run(label, { payload, failSession, failOpen }) {
 console.log('--- 正常路径 ---')
 const a = await run('ok', { payload: { status: 'open', requests: [{ folder: 'E:\\demo', token: 't', at: 1 }] } })
 console.log(a.calls.map((c) => JSON.stringify(c)).join('\n'))
+ok(mod.id === '@reed-io/dsh-explorer-open', '注册 id 与包名一致')
 ok(a.calls.some((c) => c[0] === 'workspaces.create' && c[1].path === 'E:\\demo'), '调用 workspaces.create({path})')
 ok(a.calls.some((c) => c[0] === 'sessions.create' && c[1].workspaceId === 'ws-1'), '调用 sessions.create({workspaceId, cwd})')
 ok(a.calls.some((c) => c[0] === 'uiWorkspace.openSession' && c[1] === 'sess-1'), '调用 uiWorkspace.openSession(新会话)')
