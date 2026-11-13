@@ -356,3 +356,28 @@ git sparse-checkout set packages .agents
 1. `@reed-io/dsh-explorer-open` 目前 registry 上只有 `0.0.0-stage` 占位，**0.1.3 还没真正发上去**，需要再 `npm publish --otp=…` 一次（新版本号 0.1.3 > 0.0.0-stage，不会被 latest 冲突挡住）。
 2. aleaf 那台机器验证：重装插件后是否只提示一次、失败时 `NEED-TRUST.txt` 是否出现。
 3. 市场投稿 YAML 的 `name:` 是仓库链接文字，不涉及包名，无需改动。
+
+## 12. 2026-11-13：包改名导致的 web 启动崩溃（0.1.4 / 0.1.5）
+
+### 12.1 症状
+- 打开 dsh 直接停在「Failed to load plugins」，`crash-*-web-boot.log` 里是 `web boot: 1 entry did not activate` / `@reed-io/dsh-explorer-open: import failed`。
+- 12:51 那次伴随 `client-modules: duplicate factory registration for "dsh-explorer-open" (bundle executed twice without invalidate?)`（同一行出现两次）。
+- 17:42 那次变成 `loaded without registering "@reed-io/dsh-explorer-open" via __ModuleLoader__.load`。
+
+### 12.2 根因（教训）
+**`client.js` 里 `__ModuleLoader__.load({ id })` 的 id 必须与 npm 包名完全一致。**
+- 11.3 的 scope 迁移只改了 `package.json.name`、`cordis.patch.yml.name`、README，漏了 `client.js` 的 `id: 'dsh-explorer-open'`。
+- 宿主按包名去查注册记录，查不到就报 `loaded without registering <包名> via __ModuleLoader__.load`，web 启动判定该 entry 失败 → 整个应用停在错误页。
+- 12:51 的 duplicate 是同一病根的另一种表现：改名后新旧两个 bundle 条目并存时，同一份 chunk 执行两次、用同一个 id 重复注册。0.1.4 只加了「只注册一次」的页面级守卫（`window.__dshExplorerOpenClientRegistered`），治了症状；0.1.5 才把 id 改成 '@reed-io/dsh-explorer-open' 治了根因。
+- 回归测试补了两条：`注册 id 与包名一致`、`第二次执行不重复注册工厂`。**以后任何改名动到 package.json.name，必须同步 client.js 的 id。**
+- 复现方式（不碰真实 profile）：`dsh plugin --profile probe-explorer add <仓库路径>` → 在该 profile 的 package.json 里把 bundles 加成 `['@deepseek-ai/dsh-base','@deepseek-ai/dsh-web-app','@reed-io/dsh-explorer-open']` → `dsh --profile probe-explorer --no-open`，错误会直接印在启动的网页上，比翻 crash 日志快得多。用完删掉 probe profile 和它占的 3080 端口。
+
+### 12.3 连带发现：dshmarket 会把 bundles 列表改小
+- 崩溃后 `profiles/desktop/package.json` 的 `dsh.profile.bundles` 会被 `dshmarket` 重写成「本次确实激活了的那些」：12:52 缩成 base + web-app 两项，17:46 缩成 base + web-app + dshmarket 三项。
+- 证据：`.dsh-market/log.ndjson` 的写入时间与 package.json 改写时间精确对齐（17:46:02），且每次启动只写一次（boot 时，不是退出时）。
+- 所以**启动失败后不能只看崩溃页**，还要检查 bundles 是否被削；恢复后必须保证下一次启动能全部激活，否则会被再次削小。
+- 恢复办法：手工把 `dsh.profile.bundles` 写回完整列表（`package.json.bak-20261113` 只是崩溃后的残缺版本，不可用于恢复）。
+
+### 12.4 另外两个有用的排查点
+- 启动失败时 dsh 会写 `~/.dsh/logs/startup-<时间>-<uuid>.log`（60KB 级），里面有每个插件的失败原因和「waiting for services」列表，比 `crash-*.log` 详细。
+- `crash-2026-11-12T15-26-46Z-host.log` 里的退出码 `0x40010004` = 进程被外部终止，与插件无关；`dsh-purge` 缺包是长期噪音。
