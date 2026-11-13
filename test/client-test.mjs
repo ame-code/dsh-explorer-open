@@ -73,6 +73,8 @@ async function run(label, { payload, failSession, failOpen }) {
   // 上面的动态 import 只为了拿到模块；真正执行发生在 factory 里
   globalThis.window = fakeWindow
   mod = undefined
+  // 页面每次刷新都是新的 window，插件的一次性注册标记也要跟着重置
+  delete fakeWindow.__dshExplorerOpenClientRegistered
   // 重新加载一次（module 缓存按 url，所以加个 hash）
   await import(`data:text/javascript,${encodeURIComponent(source)}#${Math.random()}`)
   const controller = mod.apply(ctx)
@@ -118,6 +120,25 @@ const f = await run('outside', {
 })
 ok(!f.calls.some((x) => x[0] === 'requestDraftInitialization'), '工作区外的文件不写引用')
 ok(f.calls.some((x) => x[0] === 'uiWorkspace.openSession'), '工作区外的文件仍然打开会话')
+
+console.log('--- 同一页面重复执行入口（插件改名/重复注入）---')
+{
+  // 回归用例：chunk 被执行两次时，第二次必须直接跳过，不能撞 client-modules
+  // 的 duplicate factory registration —— 那会让整个 web 启动失败。
+  const win = { __ModuleLoader__: { load({ factory }) { factory(() => {}) } } }
+  globalThis.window = win
+  await import(`data:text/javascript,${encodeURIComponent(source)}#dup-a-${Math.random()}`)
+  win.__ModuleLoader__.load = () => {
+    throw new Error('client-modules: duplicate factory registration for "dsh-explorer-open"')
+  }
+  let threw = false
+  try {
+    await import(`data:text/javascript,${encodeURIComponent(source)}#dup-b-${Math.random()}`)
+  } catch {
+    threw = true
+  }
+  ok(!threw, '第二次执行不重复注册工厂')
+}
 
 console.log('DONE')
 process.exit(0)
