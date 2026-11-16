@@ -32,9 +32,10 @@ Win11 的**新式简洁菜单**和**旧式完整菜单**里都有这一条，都
 | dsh 版本 | 状态 |
 | --- | --- |
 | 0.2.2-rc.1 | 实测通过：右键菜单 → 新会话 → 文件 `@引用` 全流程 |
-| 0.2.2-rc.2 | 源码契约核对通过，尚未真机回归 |
+| 0.2.2-rc.2 | 源码契约核对通过（与 rc.1 逐文件一致） |
+| 0.2.2-rc.3 | 实测通过：升级到 rc.3 后菜单键、MSIX、唤醒链路均正常 |
 
-对 0.2.2-rc.2 的核对范围（rc.2 与 rc.1 逐文件比对，均无破坏性改动）：
+对 0.2.2-rc.2 / rc.3 的核对范围（逐文件比对，均无破坏性改动）：
 
 - `uiWorkspace.openWorkspace / openSession / startSession` 与 `StartSessionOptions`
 - `workspaces.create({ path })`、`sessions.create({ workspaceId, cwd })`、`sessions.binding(id)`

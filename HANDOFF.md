@@ -381,3 +381,20 @@ git sparse-checkout set packages .agents
 ### 12.4 另外两个有用的排查点
 - 启动失败时 dsh 会写 `~/.dsh/logs/startup-<时间>-<uuid>.log`（60KB 级），里面有每个插件的失败原因和「waiting for services」列表，比 `crash-*.log` 详细。
 - `crash-2026-11-12T15-26-46Z-host.log` 里的退出码 `0x40010004` = 进程被外部终止，与插件无关；`dsh-purge` 缺包是长期噪音。
+
+## 13. 2026-11-16：dsh 0.2.2-rc.3 适配
+
+### 13.1 rc.3 相对于 rc.2 改了什么
+- 官方发布说明只有两条：新增实验性「DeepSeek 会话导入」插件；修复 Windows 桌面版应用内更新可能失败、无法自动重开的问题。都与本插件无关。
+- 逐文件比对（GitHub `contents?ref=` 取 blob sha）：`ui-workspace/navigation.ts`、`workspace-controller/service.ts`、`webserver/index.ts`、`client/modules/manifest.ts`、`client/modules/index.ts`、`package-manifest/types.ts`、`session-controller/contract/sessions.ts`、`ui-conversation/contract/input.ts`、`ui-conversation/input/hub.ts`、`boot/plugin-manager/index.ts`、`boot/app-boot/plugin-compatibility.ts`、`client/web/boot-client.ts` **全部 SAME**，无破坏性改动。
+
+### 13.2 真机验证（本机已升级到 0.2.2-rc.3）
+- `DeepSeek Harness.exe` 的 `FileVersion = 0.2.2-rc.3`，profile 里 `@reed-io/dsh-explorer-open@0.1.5` 处于 enabled/installed。
+- 经典菜单三键 `Directory\Background` / `Directory` / `*` 下的 `OpenWithDsh` 仍在（升级不会删注册表）；MSIX `DshOpenWith.Local 1.0.0.8 / Developer / Ok` 仍在。
+- 宿主路由：`GET /api/plugins/dsh-explorer-open/request` 无 header 返回 403、带 `x-dsh-explorer-open` 返回 200 `{"status":"idle","requests":[]}`。
+- 唤醒链路：手工执行运行时目录里的 `launch.ps1`（用仓库根目录当参数）→ 写出 `pending.json` → 1 秒内 `trace.log` 出现 `poll served` → `ack stage=start` → `ack stage=ok`。说明客户端轮询、建工作区、建会话在 rc.3 上全部正常。
+- 踩坑：`demo` 目录之前删了，用不存在的路径跑 launcher 会静默 `exit 0`（`$folder` 为空），不是适配问题；测试一律用真实存在的目录。
+
+### 13.3 结论与待办
+- 结论：rc.3 **不需要改代码**，0.1.5 直接可用；本版仅补文档与版本号（0.1.6）。
+- 待办：npm 上 `@reed-io/dsh-explorer-open` 的 latest 仍是 **0.1.3**（scope 迁移后、修 client id 之前的崩溃版本），必须把 0.1.6 发上去，否则用 npm 安装的用户会踩「Failed to load plugins」。
