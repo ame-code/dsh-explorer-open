@@ -32,7 +32,7 @@
     "./icon": "./icon.svg"
   },
   "scripts": {
-    "test": "node test/launcher-test.mjs && node test/client-test.mjs && node test/host-test.mjs",
+    "test": "node test/menu-coordinator-test.mjs && node test/launcher-test.mjs && node test/client-test.mjs && node test/host-test.mjs",
     "build:launcher": "pwsh.exe -NoProfile -File scripts/build-launcher.ps1"
   },
   "engines": {
