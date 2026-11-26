@@ -79,7 +79,7 @@ dsh plugin --profile desktop add E:\work\tools\dsh-explorer-open
 ```
 资源管理器右键
    ├─ 旧式菜单：HKCU\Software\Classes\{Directory\Background, Directory, *}\shell\OpenWithDsh
-   │     └─ powershell -File launch.ps1 "%V"   （无窗口，写入待办后退出）
+   │     └─ dsh-launch.exe → powershell -File launch.ps1 （GUI 启动器，CREATE_NO_WINDOW）
    └─ 新式菜单：MSIX 包身份 + 原生 IExplorerCommand
          └─ 同一个 launch.ps1
                 ↓
@@ -92,6 +92,7 @@ dsh plugin --profile desktop add E:\work\tools\dsh-explorer-open
    conversation.input.requestDraftInitialization(binding, { prompt: '@文件', clearPreviousDraft: true })
 ```
 
+- 从 0.1.7 起，经典菜单通过原生 GUI 启动器创建无控制台的 PowerShell 进程，修复点击时命令行窗口闪现（[#2](https://github.com/ame-code/dsh-explorer-open/issues/2)）。Win11 新式菜单原本已使用 `CREATE_NO_WINDOW`。首次信任证书所需的管理员授权仍正常显示。
 - 启动器用 PowerShell 5.1 写 UTF-8（**无 BOM**）、先写临时文件再改名，页面不会读到半个 JSON。
 - `/api/...` 路由要求自定义请求头，跨站页面带不上它（会先触发预检），因此别的网页没法领走排队中的请求。
 - dsh 可执行文件位置由插件写进 `config.json`，启动器按 config → `DSH_EXPLORER_OPEN_EXE` → 常见安装路径的顺序查找。
@@ -147,6 +148,15 @@ node test/client-test.mjs
 
 两个脚本都用假的 ctx / fetch，不会碰真实的菜单和 MSIX 包。
 
+经典菜单的 GUI 启动器可单独构建和验证（Windows x64，构建需要 MinGW-w64 的 `g++.exe`）：
+
+```powershell
+npm run build:launcher
+node test/launcher-test.mjs
+```
+
+集成测试实际运行原生程序，检查 GUI 子系统、PowerShell 没有控制台句柄，以及中文/空格/特殊字符/根目录参数完整传递。打包包含预编译启动器，安装插件不需要编译器。
+
 - `HANDOFF.md`：开发笔记（决策记录、踩坑、待办），中文。
 - `win11/build/` 与 `.probe/` 是构建产物和本地临时目录，不纳入版本库。
 
@@ -158,7 +168,7 @@ node test/client-test.mjs
    - 只有 `poll served` 没有 `ack`：页面里的客户端没跑起来，刷新页面（Ctrl+R）或重启 dsh。
    - `ack stage=fail`：带的是失败原因，多半是工作区/会话服务报错。
    - 连 `poll served` 都没有：请求没到宿主，检查 `~/.dsh/dsh-explorer-open/pending.json` 是否被写出来
-     （经典菜单走注册表里的 `launch.ps1`；Win11 新式菜单走 MSIX 里的 `DshOpenWith.dll`，两者都指向这个目录）。
+     （经典菜单先启动固定目录里的 `dsh-launch.exe`，再执行 `launch.ps1`；Win11 新式菜单走 MSIX 里的 `DshOpenWith.dll`，两者都执行这个目录里的脚本）。
 2. `LOCALAPPDATA%\dsh-explorer-open-command.log` —— 只有设了 `DSH_EXPLORER_OPEN_DEBUG=1` 时，原生组件才写这个日志。
 
 ## 已知限制

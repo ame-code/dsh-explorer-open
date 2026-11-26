@@ -398,3 +398,13 @@ git sparse-checkout set packages .agents
 ### 13.3 结论与待办
 - 结论：rc.3 **不需要改代码**，0.1.5 直接可用；本版仅补文档与版本号（0.1.6）。
 - 待办：npm 上 `@reed-io/dsh-explorer-open` 的 latest 仍是 **0.1.3**（scope 迁移后、修 client id 之前的崩溃版本），必须把 0.1.6 发上去，否则用 npm 安装的用户会踩「Failed to load plugins」。
+
+## 14. 2026-11-26：Issue #2 经典菜单命令行窗口闪现（0.1.7）
+
+- Issue：https://github.com/ame-code/dsh-explorer-open/issues/2 ，只有标题，未提供系统版本或使用新式/经典菜单的信息。
+- 定位：经典菜单直接运行控制台子系统的 powershell.exe，`-WindowStyle Hidden` 在 PowerShell 启动后才处理，不能阻止初始控制台创建。新式 MSIX 内的 RunLauncher 已使用 `CREATE_NO_WINDOW`，本次不重建 MSIX。
+- 修复：`win11/src/launcher.cpp` 为独立 GUI 子系统启动器，通过 `CreateProcessW(..., CREATE_NO_WINDOW, ...)` 执行同目录的 launch.ps1。`scripts/build-launcher.ps1` 用 MinGW-w64 静态链接构建 `native/dsh-launch.exe`，宿主将程序复制到固定运行时目录，三个经典菜单命令统一切到它。注册表参数追加 `\\.` 后缀再由原生程序移除，避免根目录结尾反斜杠吞掉闭引号；再按 Windows 命令行规则向 PowerShell 转义参数。
+- 验证：原生程序实际运行，确认 PE GUI 子系统、PowerShell GetConsoleWindow() = 0，中文空格/特殊字符/盘符根目录/UNC 根目录参数完整。宿主隔离测试确认程序复制和三项菜单命令，客户端与宿主回归通过；npm dry-run 20 文件且包含原生程序。测试使用系统 PowerShell 5.1 是为覆盖实际 Explorer 启动链路，开发命令使用 pwsh 7。
+- 限制：未在报告者机器做人工右键视觉复测，不能据此关闭 Issue；本次未发布 npm、未向 Issue 发评论。0.1.7 待发布，安装用户升级后需要重启 dsh 以更新菜单命令。
+- 补记：0.1.6 已于 11-16 由用户完成 npm 发布，并核验包内容及 SHA1；上一节的发布待办已完成。
+

@@ -3,6 +3,8 @@ import { existsSync, writeFileSync, readFileSync, rmSync, mkdirSync } from 'node
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { apply } from '../lib/index.js'
+import { execFileSync } from 'node:child_process'
+import { menuCommand } from '../lib/registry.js'
 
 const DIR = join(homedir(), '.dsh', 'dsh-explorer-open')
 const PENDING = join(DIR, 'pending.json')
@@ -53,7 +55,11 @@ const webCtx = {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
-const ok = (cond, label) => console.log(cond ? `PASS ${label}` : `FAIL ${label}`)
+let failures = 0
+const ok = (cond, label) => {
+  if (!cond) failures++
+  console.log(cond ? `PASS ${label}` : `FAIL ${label}`)
+}
 
 rmSync(DIR, { recursive: true, force: true })
 apply(ctx)
@@ -62,6 +68,13 @@ for (const run of effects) run()
 await sleep(2500) // 等 install effect 写完注册表 / 复制启动器
 
 ok(existsSync(LAUNCHER), '启动器已复制到固定位置')
+const silentLauncher = join(DIR, 'dsh-launch.exe')
+ok(existsSync(silentLauncher), 'GUI 启动器已复制到固定位置')
+for (const entry of ['Directory\\Background', 'Directory', '*']) {
+  const key = `${process.env.DSH_EXPLORER_OPEN_REG_BASE}\\${entry}\\shell\\OpenWithDsh\\command`
+  const output = execFileSync('reg.exe', ['query', key, '/ve'], { windowsHide: true, encoding: 'utf8' })
+  ok(output.includes(menuCommand(silentLauncher)), `菜单命令指向 GUI 启动器：${entry}`)
+}
 ok(existsSync(join(DIR, 'dsh.ico')), '菜单图标已复制到固定位置')
 const config = existsSync(join(DIR, 'config.json')) ? JSON.parse(readFileSync(join(DIR, 'config.json'), 'utf8')) : {}
 ok(typeof config.exe === 'string' && config.exe.length > 0, `config.json 记下了 dsh 路径 (${config.exe})`)
@@ -125,4 +138,4 @@ ok(!(await isLegacyInstalled()), '关闭后注册表键已移除')
 ok(registered === undefined, '关闭后接口已注销')
 
 console.log('DONE')
-process.exit(0)
+process.exit(failures ? 1 : 0)

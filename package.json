@@ -1,6 +1,6 @@
 {
   "name": "@reed-io/dsh-explorer-open",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Windows 资源管理器右键菜单里的「通过 dsh 打开」：在文件夹空白处、文件夹或文件上右键，直接在 dsh 中打开该文件夹并新建会话。",
   "author": "ame-code",
   "repository": {
@@ -32,7 +32,8 @@
     "./icon": "./icon.svg"
   },
   "scripts": {
-    "test": "node test/client-test.mjs && node test/host-test.mjs"
+    "test": "node test/launcher-test.mjs && node test/client-test.mjs && node test/host-test.mjs",
+    "build:launcher": "pwsh.exe -NoProfile -File scripts/build-launcher.ps1"
   },
   "engines": {
     "node": ">=20"
