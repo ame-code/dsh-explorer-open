@@ -14,7 +14,8 @@ Windows 资源管理器右键菜单插件 **「通过 dsh 打开」**：在文�
   2. MSIX 原生菜单安装成功/current 后，移除经典注册表回退项，避免 Win11「显示更多选项」里出现两个同名项；原生菜单不可用时保留经典入口作为回退。
 - 提交 `7387c04`（静默启动器）、`894196c`（去重）已推送到 GitHub `main`。
 - 用户已在本机确认 0.1.7 菜单去重及点击后新会话测试成功。当前运行 profile 曾通过插件管理器从本地目录 `E:\work\tools\dsh-explorer-open` 安装 0.1.7（从 0.1.6 移除后安装，`application: applied`）；经典注册表三键不存在，MSIX `DshOpenWith.Local 1.0.0.8` 正常。
-- **npm 0.1.7 尚未发布**；仅 GitHub 代码已推送。发布需用户在其账号下完成 npm 发布/OTP，不能声称已上线。
+- GitHub `v0.1.7` Release 已公开：<https://github.com/ame-code/dsh-explorer-open/releases/tag/v0.1.7>，指向提交 `8bb23df`（包含 0.1.7 代码和本项目交接文档）。
+- **npm 0.1.7 尚未发布**；仅 GitHub 代码和 Release 已推送。发布需用户在其账号下完成 npm 发布/OTP，不能声称已上线。
 - 最近任务已完成：本机直接本地安装、测试，再推送 GitHub。用户不需要等 npm 才能在本机测试。
 
 ## 架构速览
